@@ -1,5 +1,5 @@
-// v2.2 with Full Map toggle
-const LS_KEYS = { VISITED:'harbour_pools_visited_v2_2', SELECTION:'harbour_pools_selected_v2_2' };
+// v2.3 'Pretty' with animations and polished UI
+const LS_KEYS = { VISITED:'harbour_pools_visited_v2_3', SELECTION:'harbour_pools_selected_v2_3' };
 
 const pools = [
   {name:'Woolwich Baths', lat:-33.83914, lon:151.16943},
@@ -27,7 +27,7 @@ function updateCount(){
 let onPassport = false;
 function setView(passport){
   onPassport = passport;
-  document.body.classList.remove('full-map'); // exit full map when switching
+  document.body.classList.remove('full-map');
   listView.classList.toggle('active', !passport);
   passportView.classList.toggle('active', passport);
   toggleBtn.textContent = passport ? 'Back to List' : 'Passport';
@@ -73,7 +73,7 @@ function renderList(){
     row.querySelector('.stamp-chip').addEventListener('click', (e)=>{
       e.stopPropagation();
       const name = e.currentTarget.getAttribute('data-name');
-      toggleStamp(name);
+      toggleStamp(name, true);
     });
     list.appendChild(row);
   });
@@ -81,11 +81,11 @@ function renderList(){
   updateCount();
 }
 
-function toggleStamp(name){
+function toggleStamp(name, animate=false){
   visited[name] = !visited[name];
   localStorage.setItem(LS_KEYS.VISITED, JSON.stringify(visited));
   renderList();
-  renderPassport();
+  renderPassport(animate ? name : null);
 }
 
 function selectIndex(idx){
@@ -115,7 +115,7 @@ function panToSelected(){
   map.setView([p.lat, p.lon], 15, {animate:true});
 }
 
-function renderPassport(){
+function renderPassport(popName=null){
   const grid = document.getElementById('passportGrid');
   grid.innerHTML = '';
   pools.forEach(p => {
@@ -125,7 +125,7 @@ function renderPassport(){
     card.innerHTML = `
       <div class="title">${p.name}</div>
       <div class="hint">${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</div>
-      <div class="stamp" style="${stamped?'opacity:.95':'opacity:.4; filter:grayscale(1)'}">
+      <div class="stamp ${popName===p.name?'pop':''}" style="${stamped?'opacity:.98':'opacity:.45; filter:grayscale(1)'}">
         <img src="assets/stamp.svg" alt="stamp">
         <div class="label">${stamped ? p.name.split(' ')[0].toUpperCase() : 'NOT STAMPED'}</div>
       </div>`;
