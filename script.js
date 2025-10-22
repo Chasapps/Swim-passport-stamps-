@@ -1,4 +1,5 @@
-const LS_KEYS = { VISITED:'harbour_pools_visited_v2_1', SELECTION:'harbour_pools_selected_v2_1' };
+// v2.2 with Full Map toggle
+const LS_KEYS = { VISITED:'harbour_pools_visited_v2_2', SELECTION:'harbour_pools_selected_v2_2' };
 
 const pools = [
   {name:'Woolwich Baths', lat:-33.83914, lon:151.16943},
@@ -16,6 +17,7 @@ const passportView = document.getElementById('passportView');
 const toggleBtn = document.getElementById('toggleBtn');
 const resetBtn = document.getElementById('resetBtn');
 const countBadge = document.getElementById('countBadge');
+const mapToggle = document.getElementById('mapToggle');
 
 function updateCount(){
   const n = Object.values(visited).filter(Boolean).length;
@@ -25,6 +27,7 @@ function updateCount(){
 let onPassport = false;
 function setView(passport){
   onPassport = passport;
+  document.body.classList.remove('full-map'); // exit full map when switching
   listView.classList.toggle('active', !passport);
   passportView.classList.toggle('active', passport);
   toggleBtn.textContent = passport ? 'Back to List' : 'Passport';
@@ -38,6 +41,14 @@ resetBtn.addEventListener('click', ()=>{
   visited = {};
   localStorage.setItem(LS_KEYS.VISITED, JSON.stringify(visited));
   renderList(); renderPassport(); updateCount();
+});
+
+// Full map toggle
+mapToggle.addEventListener('click', ()=>{
+  const fm = document.body.classList.toggle('full-map');
+  mapToggle.textContent = fm ? '📋 Back to Split' : '🗺️ Full Map';
+  mapToggle.setAttribute('aria-pressed', fm ? 'true' : 'false');
+  setTimeout(()=>{ map.invalidateSize(); panToSelected(); }, 150);
 });
 
 function renderList(){
@@ -93,6 +104,7 @@ function highlightSelected(){
   rows.forEach((el,i)=> el.classList.toggle('row-selected', i===selectedIndex));
 }
 
+// Map using Leaflet
 const map = L.map('map').setView([pools[0].lat, pools[0].lon], 14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(map);
 const marker = L.marker([pools[0].lat, pools[0].lon]).addTo(map);
@@ -124,9 +136,8 @@ function renderPassport(){
 function init(){
   renderList();
   selectIndex(selectedIndex);
-  setTimeout(()=> map.invalidateSize() || panToSelected(), 150);
+  setTimeout(()=> { map.invalidateSize(); panToSelected(); }, 150);
   setView(false);
   updateCount();
 }
-
 document.addEventListener('DOMContentLoaded', init);
