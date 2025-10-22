@@ -1,11 +1,5 @@
-// Harbour Pools - Passport + Map
-// Local storage keys
-const LS_KEYS = {
-  VISITED: 'harbour_pools_visited_v2',
-  SELECTION: 'harbour_pools_selected_v2'
-};
+const LS_KEYS = { VISITED:'harbour_pools_visited_v2_1', SELECTION:'harbour_pools_selected_v2_1' };
 
-// Pools dataset
 const pools = [
   {name:'Woolwich Baths', lat:-33.83914, lon:151.16943},
   {name:'Northbridge Baths', lat:-33.80637, lon:151.22233},
@@ -17,18 +11,35 @@ const pools = [
 let visited = JSON.parse(localStorage.getItem(LS_KEYS.VISITED) || '{}');
 let selectedIndex = Number(localStorage.getItem(LS_KEYS.SELECTION) || 0);
 
-// Setup tabs
-function showTab(which){
-  document.getElementById('list-tab').classList.toggle('active', which==='list');
-  document.getElementById('passport-tab').classList.toggle('active', which==='passport');
-  document.getElementById('tab-list').classList.toggle('active', which==='list');
-  document.getElementById('tab-passport').classList.toggle('active', which==='passport');
-  if(which==='passport'){ renderPassport(); }
-  else { setTimeout(()=> map.invalidateSize(), 150); }
-}
-window.showTab = showTab;
+const listView = document.getElementById('listView');
+const passportView = document.getElementById('passportView');
+const toggleBtn = document.getElementById('toggleBtn');
+const resetBtn = document.getElementById('resetBtn');
+const countBadge = document.getElementById('countBadge');
 
-// Render list
+function updateCount(){
+  const n = Object.values(visited).filter(Boolean).length;
+  countBadge.textContent = `${n} / ${pools.length}`;
+}
+
+let onPassport = false;
+function setView(passport){
+  onPassport = passport;
+  listView.classList.toggle('active', !passport);
+  passportView.classList.toggle('active', passport);
+  toggleBtn.textContent = passport ? 'Back to List' : 'Passport';
+  if(passport) renderPassport();
+  setTimeout(()=>map.invalidateSize(), 150);
+}
+toggleBtn.addEventListener('click', ()=> setView(!onPassport));
+
+resetBtn.addEventListener('click', ()=>{
+  if(!confirm('Clear all stamps?')) return;
+  visited = {};
+  localStorage.setItem(LS_KEYS.VISITED, JSON.stringify(visited));
+  renderList(); renderPassport(); updateCount();
+});
+
 function renderList(){
   const list = document.getElementById('poolList');
   list.innerHTML = '';
@@ -40,53 +51,50 @@ function renderList(){
         <div class="pool-name">${p.name}</div>
         <div class="coords">${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</div>
       </div>
-      <button class="stamp-chip ${visited[p.name] ? 'stamped':''}" aria-pressed="${!!visited[p.name]}" 
-        onclick="toggleStamp('${p.name}')">${visited[p.name] ? 'Stamped' : 'Not yet'}</button>
-    `;
+      <button class="stamp-chip ${visited[p.name] ? 'stamped':''}" 
+        data-name="${p.name}">${visited[p.name] ? 'Stamped' : 'Not yet'}</button>`;
+
     row.addEventListener('click', (e)=>{
-      // avoid click from stamp button
-      if((e.target as HTMLElement).classList.contains('stamp-chip')) return;
+      const t = e.target;
+      if(t && t.classList && t.classList.contains('stamp-chip')) return;
       selectIndex(idx);
+    });
+    row.querySelector('.stamp-chip').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const name = e.currentTarget.getAttribute('data-name');
+      toggleStamp(name);
     });
     list.appendChild(row);
   });
-  // ensure highlight
   highlightSelected();
+  updateCount();
 }
-window.renderList = renderList;
 
-// Toggle stamp
 function toggleStamp(name){
   visited[name] = !visited[name];
   localStorage.setItem(LS_KEYS.VISITED, JSON.stringify(visited));
   renderList();
   renderPassport();
 }
-window.toggleStamp = toggleStamp;
 
-// Selection helpers
 function selectIndex(idx){
   selectedIndex = (idx + pools.length) % pools.length;
   localStorage.setItem(LS_KEYS.SELECTION, String(selectedIndex));
   highlightSelected();
   panToSelected();
 }
-window.selectIndex = selectIndex;
 
 function moveSelection(step){ selectIndex(selectedIndex + step); }
-window.moveSelection = moveSelection;
+document.getElementById('btnUp').addEventListener('click', ()=>moveSelection(-1));
+document.getElementById('btnDown').addEventListener('click', ()=>moveSelection(1));
 
 function highlightSelected(){
   const rows = Array.from(document.querySelectorAll('#poolList .pool-item'));
-  rows.forEach((el,i)=> el.style.background = (i===selectedIndex) ? '#f0f6ff' : 'transparent');
+  rows.forEach((el,i)=> el.classList.toggle('row-selected', i===selectedIndex));
 }
 
-// Map using Leaflet
 const map = L.map('map').setView([pools[0].lat, pools[0].lon], 14);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '&copy; OpenStreetMap'
-}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(map);
 const marker = L.marker([pools[0].lat, pools[0].lon]).addTo(map);
 
 function panToSelected(){
@@ -94,9 +102,7 @@ function panToSelected(){
   marker.setLatLng([p.lat, p.lon]).bindPopup(p.name);
   map.setView([p.lat, p.lon], 15, {animate:true});
 }
-window.panToSelected = panToSelected;
 
-// Passport view
 function renderPassport(){
   const grid = document.getElementById('passportGrid');
   grid.innerHTML = '';
@@ -107,33 +113,20 @@ function renderPassport(){
     card.innerHTML = `
       <div class="title">${p.name}</div>
       <div class="hint">${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</div>
-      ${stamped ? `
-        <div class="stamp">
-          <img src="assets/stamp.svg" alt="stamp">
-          <div class="label">${p.name.split(' ')[0].toUpperCase()}</div>
-        </div>` : `
-        <div class="stamp" style="opacity:.35; filter:grayscale(1)">
-          <img src="assets/stamp.svg" alt="empty stamp">
-          <div class="label">NOT YET</div>
-        </div>`
-      }
-    `;
+      <div class="stamp" style="${stamped?'opacity:.95':'opacity:.4; filter:grayscale(1)'}">
+        <img src="assets/stamp.svg" alt="stamp">
+        <div class="label">${stamped ? p.name.split(' ')[0].toUpperCase() : 'NOT STAMPED'}</div>
+      </div>`;
     grid.appendChild(card);
   });
 }
-window.renderPassport = renderPassport;
 
-function clearStamps(){
-  if(!confirm('Clear all stamps?')) return;
-  visited = {};
-  localStorage.setItem(LS_KEYS.VISITED, JSON.stringify(visited));
-  renderList(); renderPassport();
-}
-window.clearStamps = clearStamps;
-
-// Init
-document.addEventListener('DOMContentLoaded', ()=>{
+function init(){
   renderList();
   selectIndex(selectedIndex);
-  setTimeout(()=> map.invalidateSize() || panToSelected(), 200);
-});
+  setTimeout(()=> map.invalidateSize() || panToSelected(), 150);
+  setView(false);
+  updateCount();
+}
+
+document.addEventListener('DOMContentLoaded', init);

@@ -3,28 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Harbour Pools - Passport</title>
+  <title>Harbour Pools</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="style.css">
-  <style>
-    /* Fallback if style.css fails to load */
-  </style>
 </head>
 <body>
   <header>
-    <h1>Harbour Pools</h1>
-    <nav class="tabs">
-      <button id="tab-list" class="active" onclick="showTab('list')">List</button>
-      <button id="tab-passport" onclick="showTab('passport')">Passport</button>
-    </nav>
+    <div class="titlebar">
+      <h1>Harbour Pools</h1>
+      <span id="countBadge" class="badge">0 / 0</span>
+      <div class="actions">
+        <button id="toggleBtn" class="primary">Passport</button>
+        <button id="resetBtn" class="ghost">Reset</button>
+      </div>
+    </div>
   </header>
 
   <main>
-    <!-- LIST TAB -->
-    <section id="list-tab" class="tab active">
+    <section id="listView" class="view active">
       <div class="controls">
-        <button id="btnUp" title="Previous" onclick="moveSelection(-1)">▲</button>
-        <button id="btnDown" title="Next" onclick="moveSelection(1)">▼</button>
+        <button id="btnUp" title="Previous">▲</button>
+        <button id="btnDown" title="Next">▼</button>
       </div>
       <div class="content-split">
         <div id="poolList" class="scroll-list"></div>
@@ -32,21 +31,12 @@
       </div>
     </section>
 
-    <!-- PASSPORT TAB -->
-    <section id="passport-tab" class="tab">
-      <div class="passport-header">
-        <h2>Summer Quest Passport</h2>
-        <div class="passport-actions">
-          <button onclick="clearStamps()" class="secondary">Clear all</button>
-        </div>
-      </div>
+    <section id="passportView" class="view">
+      <h2>Summer Quest</h2>
       <div id="passportGrid" class="passport-grid"></div>
+      <p class="hint">Your stamps are saved to this device.</p>
     </section>
   </main>
-
-  <footer>
-    <small>Map © OpenStreetMap contributors • Built for Chas 👋</small>
-  </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="script.js"></script>
